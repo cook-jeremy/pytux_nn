@@ -1,0 +1,18 @@
+kart:  Adiumy            max_steer:  0.2787
+kart:  Amanda            max_steer:  0.3886
+kart:  Beastie           max_steer:  0.3923
+kart:  Emule             max_steer:  0.3387
+kart:  Gavroche          max_steer:  0.3760
+kart:  Gnu               max_steer:  0.3976
+kart:  Hexley            max_steer:  0.5410
+kart:  Kiki              max_steer:  0.4128
+kart:  Konqi             max_steer:  0.4694
+kart:  Nolok             max_steer:  0.4177
+kart:  Pidgin            max_steer:  0.3273
+kart:  Puffy             max_steer:  0.4142
+kart:  Sara the Racer    max_steer:  0.3876
+kart:  Sara the Wizard   max_steer:  0.3606
+kart:  Suzanne           max_steer:  0.4153
+kart:  Tux               max_steer:  0.4248
+kart:  Wilber            max_steer:  0.5770
+kart:  Xue               max_steer:  0.4274
