@@ -2,7 +2,8 @@ import torch
 import torch.utils.tensorboard as tb
 import numpy as np
 from dataloader import load_data
-from model import PuckDetector
+from torch.utils.data import Dataset, DataLoader
+from model import PuckDetector, save_model
 
 def train(args):
     from os import path
@@ -17,20 +18,21 @@ def train(args):
 
     model = model.to(device)
     if args.continue_training:
-        model.load_state_dict(torch.load(path.join(path.dirname(path.abspath(__file__)), 'planner.th')))
+        model.load_state_dict(torch.load(path.join(path.dirname(path.abspath(__file__)), 'puck.th')))
 
     loss = torch.nn.L1Loss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     
-    train_data = load_data(num_workers=args.num_workers)
+    #train_data = load_data(num_workers=args.num_workers)
+    train_data = load_data(num_workers=4, batch_size=64)
+
+    print('STARTING TRAINING')
 
     global_step = 0
     for epoch in range(args.num_epoch):
         model.train()
         losses = []
         for img, label in train_data:
-            if label is None:
-                continue
 
             img, label = img.to(device), label.to(device)
 
@@ -39,7 +41,7 @@ def train(args):
 
             if train_logger is not None:
                 train_logger.add_scalar('loss', loss_val, global_step)
-                if global_step % 100 == 0:
+                if global_step % 50 == 0:
                     log(train_logger, img, label, pred, global_step)
 
             optimizer.zero_grad()
@@ -50,8 +52,8 @@ def train(args):
             losses.append(loss_val.detach().cpu().numpy())
         
         avg_loss = np.mean(losses)
-        if train_logger is None:
-            print('epoch %-3d \t loss = %0.3f' % (epoch, avg_loss))
+        
+        print('epoch %-3d \t loss = %0.3f' % (epoch, avg_loss))
         save_model(model)
 
     save_model(model)
@@ -59,11 +61,16 @@ def train(args):
 def log(logger, img, label, pred, global_step):
     import matplotlib.pyplot as plt
     import torchvision.transforms.functional as TF
+    import torchvision
     fig, ax = plt.subplots(1, 1)
-    ax.imshow(TF.to_pil_image(img[0].cpu()))
-    WH2 = np.array([img.size(-1), img.size(-2)])/2
-    ax.add_artist(plt.Circle(WH2*(label[0].cpu().detach().numpy()+1), 2, ec='g', fill=False, lw=1.5))
-    ax.add_artist(plt.Circle(WH2*(pred[0].cpu().detach().numpy()+1), 2, ec='r', fill=False, lw=1.5))
+    im = TF.to_pil_image(img[0].cpu())
+    resize = torchvision.transforms.Resize([300, 400])
+    im = resize(im)
+    ax.imshow(im)
+    print(tuple(label[0].cpu().detach().numpy()))
+    print(tuple(pred[0].cpu().detach().numpy()))
+    ax.add_artist(plt.Circle(tuple(label[0].cpu().detach().numpy()), 10, ec='g', fill=False, lw=1.5))
+    ax.add_artist(plt.Circle(tuple(pred[0].cpu().detach().numpy()), 10, ec='r', fill=False, lw=1.5))
     logger.add_figure('viz', fig, global_step)
     del ax, fig
 

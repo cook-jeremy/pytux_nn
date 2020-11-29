@@ -33,12 +33,17 @@ class SuperTuxDataset(Dataset):
             peak = extract_peak(I)
             self.puck.append(peak)
 
+        # I = Image.open('data/images/0_000078.png')
+        # I2 = Image.open('data/puck/0_000078.png')
+        # I2 = F.to_tensor(I2)
+        # peak = extract_peak(I2)
+        #logger.add_figure('viz', fig, global_step)
+
     def __len__(self):
-        return len(self.data)
+        return len(self.images)
 
     def __getitem__(self, idx):
         image = self.images[idx]
-        image = self.transform(*image)
         puck = self.puck[idx]
         return image, puck
 
@@ -46,6 +51,7 @@ def extract_peak(image):
     nz = torch.nonzero(image)
 
     if nz.numel() == 0:
+        print('ERROR!!! NO PUCK IN IMAGE')
         return None
 
     xs = []
@@ -56,7 +62,9 @@ def extract_peak(image):
     
     avg_x = sum(xs) / len(xs)
     avg_y = sum(ys) / len(ys)
-    return (avg_x, avg_y)
+    ret_list = [avg_y, avg_x]
+    ret_ten = torch.Tensor(ret_list)
+    return ret_ten
 
 
 def load_data(num_workers=0, batch_size=128):

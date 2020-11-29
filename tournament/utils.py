@@ -6,6 +6,14 @@ from PIL import Image, ImageDraw, ImageFont
 from torch.utils.data import Dataset, DataLoader
 import os
 import matplotlib.pyplot as plt
+import torch
+
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir) 
+
+from agent.player import HockeyPlayer
 
 HACK_DICT = dict()
 
@@ -98,16 +106,16 @@ class OraclePlayer:
                 BACKUP = False
         
         # visualize the controller in real time
-        # if player_info.kart.id == 0:
-        #     ax1 = plt.subplot(111)
-        #     if FIRST:
-        #         IM = ax1.imshow(image)
-        #         FIRST = False
-        #     else:
-        #         IM.set_data(image)
-        #     print('angle: ', "{:.2f}".format(np.degrees(signed_theta)))
-        #     print('loc: ' + str(kart))
-        #     plt.pause(0.001)
+        if player_info.kart.id == 0:
+            ax1 = plt.subplot(111)
+            if FIRST:
+                IM = ax1.imshow(image)
+                FIRST = False
+            else:
+                IM.set_data(image)
+            print('angle: ', "{:.2f}".format(np.degrees(signed_theta)))
+            print('loc: ' + str(kart))
+            plt.pause(0.001)
         
 
         action = {
@@ -150,6 +158,7 @@ class Tournament:
 
     def play(self, save=None, max_frames=50, save_callback=None):
         state = pystk.WorldState()
+        
         if save is not None:
             import PIL.Image
             if not os.path.exists(save):
@@ -240,13 +249,24 @@ class DataCollector(object):
 
         # player
         for i in range(4):
+            mask = (race.render_data[i].instance == 134217729)
+
+            has_puck = False
+            for row in mask:
+                for b in row:
+                    if b:
+                        has_puck = True
+                        break
+            
+            if not has_puck:
+                continue
+
+            output_path = '%s/%d_%06d.png' % (self.puck, i, t)
+            Image.fromarray(mask).save(output_path)
+
             image = race.render_data[i].image       # np uint8 (h, w, 3) [0, 255]
             output_path = '%s/%d_%06d.png' % (self.image, i, t)
             Image.fromarray(image).save(output_path)
-
-            mask = (race.render_data[i].instance == 134217729)
-            output_path = '%s/%d_%06d.png' % (self.puck, i, t)
-            Image.fromarray(mask).save(output_path)
 
             action = hack_dict['player_%d' % i]
             output_path = '%s/%d_%06d.txt' % (self.action, i, t)
@@ -292,11 +312,11 @@ def run(agents, dest):
     data_collector = DataCollector(dest)
         
     tournament = Tournament(players)
-    score = tournament.play(max_frames=10000, save_callback=data_collector.save_frame)
+    score = tournament.play(max_frames=250, save_callback=data_collector.save_frame)
 
     print('Final score', score)
 
-def test(agents, dest):
+def test(agents, dest=None):
     players = []
 
     for i, player in enumerate(agents):
@@ -313,5 +333,6 @@ def test(agents, dest):
 
 if __name__ == '__main__':
     # Collect an episode.
-    run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
+    # run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
+    test([HockeyPlayer, OraclePlayer])
