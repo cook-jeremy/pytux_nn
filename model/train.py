@@ -1,9 +1,9 @@
 import torch
 import torch.utils.tensorboard as tb
 import numpy as np
-from dataloader import load_data
+from .dataloader import load_data
 from torch.utils.data import Dataset, DataLoader
-from model import PuckDetector, save_model
+from .model import PuckDetector, save_model
 
 def train(args):
     from os import path
