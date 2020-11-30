@@ -2,11 +2,13 @@ import pystk
 import numpy as np
 import pathlib
 import PIL.Image
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFile
 from torch.utils.data import Dataset, DataLoader
 import os
 import matplotlib.pyplot as plt
 import torch
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -333,6 +335,6 @@ def test(agents, dest=None):
 
 if __name__ == '__main__':
     # Collect an episode.
-    # run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
+     run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
-    test([HockeyPlayer, OraclePlayer])
+    #test([HockeyPlayer, OraclePlayer])
