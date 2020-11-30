@@ -1,5 +1,6 @@
 from .utils import Player
 from .utils import Tournament
+from .utils import DummyPlayer
 from argparse import ArgumentParser
 import importlib
 import numpy as np

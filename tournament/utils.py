@@ -333,6 +333,6 @@ def test(agents, dest=None):
 
 if __name__ == '__main__':
     # Collect an episode.
-    # run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
+     run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
-    test([HockeyPlayer, OraclePlayer])
+    # test([HockeyPlayer, OraclePlayer])
