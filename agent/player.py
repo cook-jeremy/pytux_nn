@@ -71,7 +71,7 @@ class HockeyPlayer:
 
         v = puck_loc - location
         v = v / np.linalg.norm(v)
-
+        print(v[0])
         theta = np.arccos(np.dot(u, v))
         signed_theta = -np.sign(np.cross(u, v)) * theta
 
@@ -144,10 +144,10 @@ class GoaliePlayer:
         self.player_id = player_id
         self.kart = 'tux'
         self.team = player_id % 2
-        # self.puck_detector = load_model()
-        # self.puck_detector.eval()
-        self.goalie_up_direction = True
-        self.goalie_postion = 0
+        self.puck_detector = load_model()
+        self.puck_detector.eval()
+        #self.goalie_up_direction = True
+        #self.goalie_postion = 0
       
     def act(self, image, player_info):
         global FIRST, IM, BACKUP
@@ -156,62 +156,78 @@ class GoaliePlayer:
         print(self.team)
         if self.team == 0:
             team_goal = GOAL_1
-            x_diff = 2
+            other_goal = GOAL_0
         else:
             team_goal = GOAL_0
-            x_diff = -2
+            other_goal = GOAL_1
 
         front = np.array(player_info.kart.front)[[0,2]]
         location = np.array(player_info.kart.location)[[0,2]]
 
         device = torch.device('cpu')
-        # I = F.to_tensor(image)
-        # I = I.to(device)
-  
-        if(self.goalie_up_direction == True):
-          self.goalie_postion += 1
-          
-          if (self.goalie_postion == 10):
-            self.goalie_up_direction = False
-          
-        else:
-          self.goalie_postion -= 1
-          if(self.goalie_postion == -10):
-            self.goalie_up_direction = True
+        I = F.to_tensor(image)
+        I = I.to(device)
+        puck_loc = self.puck_detector(I)
+        puck_loc = puck_loc.detach().numpy()[0]
 
-        goal_point = [team_goal[0] + x_diff,team_goal[1]+self.goalie_postion]
+        too_far = False
 
-        u = location - front
-        u = u / np.linalg.norm(u)
+        if(puck_loc[0] == 1):
+          puck_vector = puck_loc[1:]
+          u = location - puck_loc
+          u = u / np.linalg.norm(u)
+          dist_to_puck = np.linalg.norm(u)
+          if(dist_to_puck < 20):
+            v = location - front
+            v = v / np.linalg.norm(v)
 
-        v = location - goal_point
-        v = v / np.linalg.norm(v)
-
-        theta = np.arccos(np.dot(u, v))
-        signed_theta = -np.sign(np.cross(u, v)) * theta
+            theta = np.arccos(np.dot(u, v))
+            signed_theta = -np.sign(np.cross(u, v)) * theta
 
 
-        steer = 20 * signed_theta
-        #steer = 0
-        #accel = 0.5
-        accel = 0.1
-        brake = False
-        drift = False
+            steer = 20 * signed_theta
+            #steer = 0
+            #accel = 0.5
+            accel = 0.1
+            brake = False
+            drift = False
 
 
-        if np.degrees(theta) > 60 and np.degrees(theta) < 90:
-            drift = True
+            if np.degrees(theta) > 60 and np.degrees(theta) < 90:
+                drift = True
 
-        if np.degrees(theta) > 90 and not BACKUP:
-            BACKUP = True
+            if np.degrees(theta) > 90 and not BACKUP:
+                BACKUP = True
 
-        if BACKUP:
-            if np.degrees(theta) > 30:
-                accel = 0
-                brake = True
-                steer = -steer
-            else:
-                BACKUP = False
+            if BACKUP:
+                if np.degrees(theta) > 30:
+                    accel = 0
+                    brake = True
+                    steer = -steer
+                else:
+                    BACKUP = False
+          else:
+            too_far = True
+
+        elif(puck_loc[0] == 0 or too_far == True):
+            u = location - front
+            u = u / np.linalg.norm(u)
+
+            v = location - team_goal
+            v = v / np.linalg.norm(v)
+
+            accel = 0.1
+            brake = False
+            drift = False
+
+            dist_to_goal = np.linalg.norm(v)
+            if(dist_to_goal < 1):
+              v = team_goal - other_goal
+              theta = np.arccos(np.dot(u, v))
+              signed_theta = -np.sign(np.cross(u, v)) * theta
+
+            steer = 20 * signed_theta
+            
 
         # visualize the controller in real time
         if player_info.kart.id == 0:
