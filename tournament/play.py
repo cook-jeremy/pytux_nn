@@ -20,7 +20,16 @@ if __name__ == '__main__':
             players.append(DummyPlayer(i % 2))
         else:
             players.append(Player(importlib.import_module(player).HockeyPlayer(i), i % 2))
-        
+    
+    index = len(players) - 1
+    while(isinstance(players[index], DummyPlayer)):
+      index -= 1
+    if(index > 1):
+      # print(players[index])
+      # print(index)
+      player = args.players[index]
+      players[index] = Player(importlib.import_module(player).GoaliePlayer(index), index % 2) 
+    
     tournament = Tournament(players)
     score = tournament.play(save=args.save_loc, max_frames=args.num_frames)
     tournament.close()
