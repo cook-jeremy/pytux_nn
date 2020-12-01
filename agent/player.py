@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from model.model import PuckDetector
 import torch
 from torchvision.transforms import functional as F
+import torchvision
+from PIL import Image
 
 GOAL_0 = np.array([0, 64.5])
 GOAL_1 = np.array([0, -64.5])
@@ -11,6 +13,7 @@ GOAL_1 = np.array([0, -64.5])
 FIRST = True
 IM = None
 BACKUP = False
+PREV_DRAW = None
 
 def load_model():
     from torch import load
@@ -45,9 +48,10 @@ class HockeyPlayer:
         self.team = player_id % 2
         self.puck_detector = load_model()
         self.puck_detector.eval()
+        self.resize = torchvision.transforms.Resize([128, 128])
       
     def act(self, image, player_info):
-        global FIRST, IM, BACKUP
+        global FIRST, IM, BACKUP, PREV_DRAW
 
         score_goal = None
         print(self.team)
@@ -62,12 +66,16 @@ class HockeyPlayer:
         # neural network gets location of puck
         
         device = torch.device('cpu')
-        I = F.to_tensor(image)
+
+        I = Image.fromarray(image)
+        I = self.resize(I)
+        I = F.to_tensor(I)
+        I = I[None, :]
         I = I.to(device)
         puck_loc = self.puck_detector(I)
         puck_loc = puck_loc.detach().numpy()[0]
 
-        u = puck_loc - score_goal
+        u = front - location
         u = u / np.linalg.norm(u)
 
         v = puck_loc - location
@@ -76,9 +84,8 @@ class HockeyPlayer:
         theta = np.arccos(np.dot(u, v))
         signed_theta = -np.sign(np.cross(u, v)) * theta
 
-        #steer = 20 * signed_theta
-        steer = 0
-        #accel = 0.5
+        steer = 20 * signed_theta
+        accel = 0.5
         accel = 0.1
         brake = False
         drift = False
@@ -106,9 +113,13 @@ class HockeyPlayer:
             else:
                 IM.set_data(image)
 
-            ax1.add_artist(plt.Circle(puck_loc, 10, ec='g', fill=False, lw=1.5))
-            print('loc: ' + str(location))
-            print('puck loc: ' + str(puck_loc))
+            if PREV_DRAW is not None:
+                PREV_DRAW.remove()
+
+            PREV_DRAW = plt.Circle(puck_loc, 10, ec='g', fill=False, lw=1.5)
+            ax1.add_artist(PREV_DRAW)
+            #print('loc: ' + str(location))
+            #print('puck loc: ' + str(puck_loc))
             plt.pause(0.001)
 
         action = {

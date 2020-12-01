@@ -19,7 +19,7 @@ class SuperTuxDataset(Dataset):
         import os
         self.images = []
         self.puck = []
-        resize = torchvision.transforms.Resize([128, 128])
+        resize = torchvision.transforms.Resize([150, 200])
 
         for file in os.listdir(IMAGE_PATH):
             I = Image.open(os.path.join(IMAGE_PATH,file))
@@ -51,8 +51,8 @@ def extract_peak(image):
     nz = torch.nonzero(image)
 
     if nz.numel() == 0:
-        print('ERROR!!! NO PUCK IN IMAGE')
-        return None
+        ret = torch.Tensor([0,150,200])
+        return ret
 
     xs = []
     ys = []

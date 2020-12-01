@@ -106,16 +106,16 @@ class OraclePlayer:
                 BACKUP = False
         
         # visualize the controller in real time
-        if player_info.kart.id == 0:
-            ax1 = plt.subplot(111)
-            if FIRST:
-                IM = ax1.imshow(image)
-                FIRST = False
-            else:
-                IM.set_data(image)
-            print('angle: ', "{:.2f}".format(np.degrees(signed_theta)))
-            print('loc: ' + str(kart))
-            plt.pause(0.001)
+        # if player_info.kart.id == 0:
+        #     ax1 = plt.subplot(111)
+        #     if FIRST:
+        #         IM = ax1.imshow(image)
+        #         FIRST = False
+        #     else:
+        #         IM.set_data(image)
+        #     print('angle: ', "{:.2f}".format(np.degrees(signed_theta)))
+        #     print('loc: ' + str(kart))
+        #     plt.pause(0.001)
         
 
         action = {
@@ -239,9 +239,9 @@ class DataCollector(object):
         if not os.path.exists(self.puck): 
             os.mkdir(self.puck)
 
-        self.action = os.path.join(destination, 'actions')
-        if not os.path.exists(self.action): 
-            os.mkdir(self.action)
+        # self.action = os.path.join(destination, 'actions')
+        # if not os.path.exists(self.action): 
+        #     os.mkdir(self.action)
 
     def save_frame(self, race, state, t, hack_dict):
         #if t % 2 == 0:
@@ -268,9 +268,9 @@ class DataCollector(object):
             output_path = '%s/%d_%06d.png' % (self.image, i, t)
             Image.fromarray(image).save(output_path)
 
-            action = hack_dict['player_%d' % i]
-            output_path = '%s/%d_%06d.txt' % (self.action, i, t)
-            pathlib.Path(output_path).write_text('%.3f %.3f' % (action['steer'], action['acceleration']))
+            # action = hack_dict['player_%d' % i]
+            # output_path = '%s/%d_%06d.txt' % (self.action, i, t)
+            # pathlib.Path(output_path).write_text('%.3f %.3f' % (action['steer'], action['acceleration']))
 
     def visualize_player(self, race, state, i):
         # 255 * mask.astype(np.uint8) -> (h, w) [0-255]
@@ -312,7 +312,7 @@ def run(agents, dest):
     data_collector = DataCollector(dest)
         
     tournament = Tournament(players)
-    score = tournament.play(max_frames=250, save_callback=data_collector.save_frame)
+    score = tournament.play(max_frames=1000, save_callback=data_collector.save_frame)
 
     print('Final score', score)
 
