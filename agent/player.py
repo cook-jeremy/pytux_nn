@@ -231,7 +231,7 @@ class GoaliePlayer:
 
         # visualize the controller in real time
         if player_info.kart.id == 0:
-            #ax1 = plt.subplot(111)
+            ax1 = plt.subplot(111)
             if FIRST:
                 IM = ax1.imshow(image)
                 FIRST = False
@@ -239,8 +239,8 @@ class GoaliePlayer:
                 IM.set_data(image)
 
             #ax1.add_artist(plt.Circle(puck_loc, 10, ec='g', fill=False, lw=1.5))
-            print('loc: ' + str(location))
-            print('team goal loc: ' + str(goal_point))
+            #print('loc: ' + str(location))
+            #print('team goal loc: ' + str(goal_point))
             plt.pause(0.001)
 
         action = {

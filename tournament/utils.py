@@ -15,7 +15,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
-from agent.player import HockeyPlayer
+from agent.player import HockeyPlayer, GoaliePlayer
 
 HACK_DICT = dict()
 
@@ -335,6 +335,6 @@ def test(agents, dest=None):
 
 if __name__ == '__main__':
     # Collect an episode.
-     run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
+    # run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
-    #test([HockeyPlayer, OraclePlayer])
+    test([GoaliePlayer, OraclePlayer])
