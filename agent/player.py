@@ -11,6 +11,7 @@ GOAL_1 = np.array([0, -64.5])
 FIRST = True
 IM = None
 BACKUP = False
+FRAMES = 0
 
 def load_model():
     from torch import load
@@ -45,9 +46,9 @@ class HockeyPlayer:
         self.team = player_id % 2
         self.puck_detector = load_model()
         self.puck_detector.eval()
-      
+     
     def act(self, image, player_info):
-        global FIRST, IM, BACKUP
+        global FIRST, IM, BACKUP, FRAMES
 
         score_goal = None
         print(self.team)
@@ -59,6 +60,16 @@ class HockeyPlayer:
         front = np.array(player_info.kart.front)[[0,2]]
         location = np.array(player_info.kart.location)[[0,2]]
 
+        rescue = False
+        if (player_info.kart.velocity == 0):
+          FRAMES += 1
+        else:
+          FRAMES = 0
+        
+        threshold = 20
+        if (FRAMES >= threshold):
+          rescue = True
+          FRAMES = 0
         # neural network gets location of puck
         
         device = torch.device('cpu')
@@ -117,6 +128,6 @@ class HockeyPlayer:
             'brake': brake,
             'drift': drift,
             'nitro': False, 
-            'rescue': False}
+            'rescue': rescue}
 
         return action
