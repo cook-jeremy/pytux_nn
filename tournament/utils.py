@@ -206,23 +206,23 @@ class ScorePlayer:
                 BACKUP = False
         
         # visualize the controller in real time
-        if player_info.kart.id == 0:
-            ax1 = plt.subplot(111)
-            if FIRST:
-                IM = ax1.imshow(image)
-                FIRST = False
-            else:
-                IM.set_data(image)
+        # if player_info.kart.id == 0:
+        #     ax1 = plt.subplot(111)
+        #     if FIRST:
+        #         IM = ax1.imshow(image)
+        #         FIRST = False
+        #     else:
+        #         IM.set_data(image)
             
-            # print('p_to_fron: ', u)
-            # print('p_to_puck: ', v)
-            # print('puck_to_g: ', w)
-            # print('aim_vec__: ', v2)
-            # print('signed theta: ', signed_theta)
-            # print('steer: ', steer)
-            # print('loc: ' + str(kart))
-            # print('-----------------------')
-            plt.pause(0.001)
+        #     print('p_to_fron: ', u)
+        #     print('p_to_puck: ', v)
+        #     print('puck_to_g: ', w)
+        #     print('aim_vec__: ', v2)
+        #     print('signed theta: ', signed_theta)
+        #     print('steer: ', steer)
+        #     print('loc: ' + str(kart))
+        #     print('-----------------------')
+        #     plt.pause(0.001)
         
 
         action = {
@@ -420,7 +420,7 @@ def test(agents, dest=None):
 
 if __name__ == '__main__':
     # Collect an episode.
-    run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
+    run([OraclePlayer, OraclePlayer, ScorePlayer, ScorePlayer], 'data')
     # test([ScorePlayer, 'AI', ScorePlayer, 'AI'])
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
     # test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])
