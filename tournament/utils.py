@@ -45,6 +45,7 @@ class DummyPlayer:
 FIRST = True
 IM = None
 BACKUP = False
+FRAMES = 0
 
 class OraclePlayer:
     kart = ""
@@ -90,6 +91,23 @@ class OraclePlayer:
         accel = 0.5
         brake = False
         drift = False
+
+        STUCK = False
+        if (player_info.kart.velocity[0] < 0.01):
+          FRAMES += 1
+        else:
+          FRAMES = 0
+        
+        threshold = 50
+        if (FRAMES >= threshold):
+          STUCK = True
+          FRAMES = 0
+
+        if (STUCK):
+          v = -4*u
+          theta = np.arccos(np.dot(u, v))
+          signed_theta = -np.sign(np.cross(u, v)) * theta
+          steer = 20 * signed_theta
 
         if np.degrees(theta) > 60 and np.degrees(theta) < 90:
             drift = True

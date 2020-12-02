@@ -60,16 +60,6 @@ class HockeyPlayer:
         front = np.array(player_info.kart.front)[[0,2]]
         location = np.array(player_info.kart.location)[[0,2]]
 
-        rescue = False
-        if (player_info.kart.velocity == 0):
-          FRAMES += 1
-        else:
-          FRAMES = 0
-        
-        threshold = 20
-        if (FRAMES >= threshold):
-          rescue = True
-          FRAMES = 0
         # neural network gets location of puck
         
         device = torch.device('cpu')
@@ -93,6 +83,23 @@ class HockeyPlayer:
         accel = 0.1
         brake = False
         drift = False
+
+        STUCK = False
+        if (player_info.kart.velocity[0] < 0.01):
+          FRAMES += 1
+        else:
+          FRAMES = 0
+        
+        threshold = 50
+        if (FRAMES >= threshold):
+          STUCK = True
+          FRAMES = 0
+
+        if (STUCK):
+          v = -4*u
+          theta = np.arccos(np.dot(u, v))
+          signed_theta = -np.sign(np.cross(u, v)) * theta
+          steer = 20 * signed_theta
 
         if np.degrees(theta) > 60 and np.degrees(theta) < 90:
             drift = True
@@ -128,6 +135,6 @@ class HockeyPlayer:
             'brake': brake,
             'drift': drift,
             'nitro': False, 
-            'rescue': rescue}
+            'rescue': False}
 
         return action
