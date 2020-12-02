@@ -46,6 +46,7 @@ FIRST = True
 IM = None
 BACKUP = False
 FRAMES = 0
+STUCK_COUNTER = 0
 
 class OraclePlayer:
     kart = ""
@@ -72,7 +73,7 @@ class OraclePlayer:
         :param player_info: pystk.Player object for the current kart.
         return: Dict describing the action
         """
-        global FIRST, IM, BACKUP
+        global FIRST, IM, BACKUP, FRAMES, STUCK_COUNTER
 
         front = np.array(HACK_DICT['kart'].front)[[0, 2]]
         kart = np.array(HACK_DICT['kart'].location)[[0, 2]]
@@ -87,41 +88,43 @@ class OraclePlayer:
         theta = np.arccos(np.dot(u, v))
         signed_theta = -np.sign(np.cross(u, v)) * theta
 
-        steer = 20 * signed_theta
+        #steer = 20 * signed_theta
+        steer = 0
         accel = 0.5
         brake = False
         drift = False
 
-        STUCK = False
-        if (player_info.kart.velocity[0] < 0.01):
+        if player_info.kart.id == 0:
+            print('vel norm: ', np.linalg.norm(player_info.kart.velocity))
+
+        if (np.linalg.norm(player_info.kart.velocity) < 0.2):
           FRAMES += 1
-        else:
-          FRAMES = 0
         
-        threshold = 50
-        if (FRAMES >= threshold):
-          STUCK = True
-          FRAMES = 0
+        threshold = 40
+        if (FRAMES >= threshold) and STUCK_COUNTER < threshold:
+            print('STUCK!!!----------------------------------')
+            steer = -0.6
+            brake = True
+            accel = 0
+            STUCK_COUNTER += 1
 
-        if (STUCK):
-          v = -4*u
-          theta = np.arccos(np.dot(u, v))
-          signed_theta = -np.sign(np.cross(u, v)) * theta
-          steer = 20 * signed_theta
+        if STUCK_COUNTER >= threshold:
+            STUCK_COUNTER = 0
+            FRAMES = 0
 
-        if np.degrees(theta) > 60 and np.degrees(theta) < 90:
-            drift = True
+        # if np.degrees(theta) > 60 and np.degrees(theta) < 90:
+        #     drift = True
 
-        if np.degrees(theta) > 90 and not BACKUP:
-            BACKUP = True
+        # if np.degrees(theta) > 90 and not BACKUP:
+        #     BACKUP = True
 
-        if BACKUP:
-            if np.degrees(theta) > 30:
-                accel = 0
-                brake = True
-                steer = -steer
-            else:
-                BACKUP = False
+        # if BACKUP:
+        #     if np.degrees(theta) > 30:
+        #         accel = 0
+        #         brake = True
+        #         steer = -steer
+        #     else:
+        #         BACKUP = False
         
         # visualize the controller in real time
         if player_info.kart.id == 0:
@@ -351,6 +354,6 @@ def test(agents, dest=None):
 
 if __name__ == '__main__':
     # Collect an episode.
-     run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
-    # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
+    # run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
+    test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
     # test([HockeyPlayer, OraclePlayer])
