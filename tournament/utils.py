@@ -128,6 +128,113 @@ class OraclePlayer:
 
         return action
 
+GOAL_0 = np.array([0, 64.5])
+GOAL_1 = np.array([0, -64.5])
+
+class ScorePlayer:
+    kart = ""
+    
+    def __init__(self, player_id = 0):
+        #all_players = ['adiumy', 'amanda', 'beastie', 'emule', 'gavroche', 'gnu', 'hexley', 'kiki', 'konqi', 'nolok', 'pidgin', 'puffy', 'sara_the_racer', 'sara_the_wizard', 'suzanne', 'tux', 'wilber', 'xue']
+        self.player_id = player_id
+
+        # players with the largest max_steer_angle
+        if player_id == 0:
+            self.kart = 'wilber'
+        if player_id == 1:
+            self.kart = 'hexley'
+        if player_id == 2:
+            self.kart = 'konqi'
+        if player_id == 3:
+            self.kart = 'xue'
+        
+        self.team = player_id % 2
+        
+    def act(self, image, player_info):
+        """
+        :param image: numpy array of shape (300, 400, 3)
+        :param player_info: pystk.Player object for the current kart.
+        return: Dict describing the action
+        """
+        global FIRST, IM, BACKUP
+
+        score_goal = None
+        if self.team == 0:
+            score_goal = GOAL_0
+        else:
+            score_goal = GOAL_1
+
+        front = np.array(HACK_DICT['kart'].front)[[0, 2]]
+        kart = np.array(HACK_DICT['kart'].location)[[0, 2]]
+        puck = np.array(HACK_DICT['state'].soccer.ball.location)[[0, 2]]
+
+        # player vector
+        u = front - kart
+        u = u / np.linalg.norm(u)
+
+        # to puck
+        v = puck - kart
+        v = v / np.linalg.norm(v)
+
+        # goal to puck
+        w = puck - score_goal
+        w = w / np.linalg.norm(w)
+
+        v2 = v + (w / 2)
+        v2 = v2 / np.linalg.norm(v2)
+
+        theta = np.arccos(np.dot(u, v2))
+        signed_theta = -np.sign(np.cross(u, v2)) * theta
+
+        steer = 5*signed_theta
+        accel = 0.5
+        brake = False
+        drift = False
+
+        if np.degrees(theta) > 20 and np.degrees(theta) < 90:
+            drift = True
+
+        if np.degrees(theta) > 90 and not BACKUP:
+            BACKUP = True
+
+        if BACKUP:
+            if np.degrees(theta) > 30:
+                accel = 0
+                brake = True
+                steer = -steer
+            else:
+                BACKUP = False
+        
+        # visualize the controller in real time
+        if player_info.kart.id == 0:
+            ax1 = plt.subplot(111)
+            if FIRST:
+                IM = ax1.imshow(image)
+                FIRST = False
+            else:
+                IM.set_data(image)
+            
+            # print('p_to_fron: ', u)
+            # print('p_to_puck: ', v)
+            # print('puck_to_g: ', w)
+            # print('aim_vec__: ', v2)
+            # print('signed theta: ', signed_theta)
+            # print('steer: ', steer)
+            # print('loc: ' + str(kart))
+            # print('-----------------------')
+            plt.pause(0.001)
+        
+
+        action = {
+            'steer': steer,
+            'acceleration': accel,
+            'brake': brake,
+            'drift': drift,
+            'nitro': False, 
+            'rescue': False}
+
+        return action
+
 class Tournament:
     _singleton = None
 
@@ -232,11 +339,19 @@ class DataCollector(object):
         self.destination.mkdir(exist_ok=True)
 
         self.image = os.path.join(destination, 'images')
-        if not os.path.exists(self.image): 
+        if not os.path.exists(self.image):
             os.mkdir(self.image)
 
+        self.image_p = os.path.join(self.image, 'has_puck')
+        if not os.path.exists(self.image_p): 
+            os.mkdir(self.image_p)
+
+        self.image_np = os.path.join(self.image, 'no_puck')
+        if not os.path.exists(self.image_np): 
+            os.mkdir(self.image_np)
+
         self.puck = os.path.join(destination, 'puck')
-        if not os.path.exists(self.puck): 
+        if not os.path.exists(self.puck):
             os.mkdir(self.puck)
 
         # self.action = os.path.join(destination, 'actions')
@@ -244,60 +359,32 @@ class DataCollector(object):
         #     os.mkdir(self.action)
 
     def save_frame(self, race, state, t, hack_dict):
-        #if t % 2 == 0:
-        #    self._debug(race, state)
-
         # player
         for i in range(4):
             mask = (race.render_data[i].instance == 134217729)
-
+            
             has_puck = False
             for row in mask:
                 for b in row:
                     if b:
                         has_puck = True
                         break
-            
-            if not has_puck:
-                continue
 
-            output_path = '%s/%d_%06d.png' % (self.puck, i, t)
-            Image.fromarray(mask).save(output_path)
+            if has_puck:
+                output_path = '%s/%d_%06d.png' % (self.puck, i, t)
+                Image.fromarray(mask).save(output_path)
 
             image = race.render_data[i].image       # np uint8 (h, w, 3) [0, 255]
-            output_path = '%s/%d_%06d.png' % (self.image, i, t)
-            Image.fromarray(image).save(output_path)
+            if not has_puck:
+                output_path = '%s/%d_%06d.png' % (self.image_np, i, t)
+                Image.fromarray(image).save(output_path)
+            else:
+                output_path = '%s/%d_%06d.png' % (self.image_p, i, t)
+                Image.fromarray(image).save(output_path)
 
             # action = hack_dict['player_%d' % i]
             # output_path = '%s/%d_%06d.txt' % (self.action, i, t)
             # pathlib.Path(output_path).write_text('%.3f %.3f' % (action['steer'], action['acceleration']))
-
-    def visualize_player(self, race, state, i):
-        # 255 * mask.astype(np.uint8) -> (h, w) [0-255]
-        # mask[..., None] -> (h, w, 1)
-        # mask.repeat(3, -1) -> (h, w, 3)
-        mask = (race.render_data[i].instance == 134217729)
-        mask = (255 * mask.astype(np.uint8))[..., None].repeat(3, -1)
-
-        return np.hstack((race.render_data[i].image, mask))
-
-    # def _debug(self, race, state):
-    #     visualizations = [DataCollector.visualize_player(race, state, i) for i in range(4)]
-
-    #     row1 = np.hstack((visualizations[0], visualizations[1]))
-    #     row2 = np.hstack((visualizations[2], visualizations[3]))
-    #     grid = np.vstack((row1, row2))
-
-    #     self.images.append(grid[::2, ::2])
-
-    # def colab_show(self):
-    #     if len(self.images) == 0:
-    #         return
-
-    #     from moviepy.editor import ImageSequenceClip
-    #     from IPython.display import display
-
-    #     display(ImageSequenceClip(self.images, fps=10).ipython_display(width=720, autoplay=True, loop=True))
 
 
 def run(agents, dest):
@@ -312,7 +399,7 @@ def run(agents, dest):
     data_collector = DataCollector(dest)
         
     tournament = Tournament(players)
-    score = tournament.play(max_frames=1000, save_callback=data_collector.save_frame)
+    score = tournament.play(max_frames=5000, save_callback=data_collector.save_frame)
 
     print('Final score', score)
 
@@ -327,12 +414,13 @@ def test(agents, dest=None):
         
     tournament = Tournament(players)
     #score = tournament.play(save=dest, max_frames=200)
-    score = tournament.play(max_frames=1000)
+    score = tournament.play(max_frames=10000)
 
     print('Final score', score)
 
 if __name__ == '__main__':
     # Collect an episode.
-    # run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
+    run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
+    # test([ScorePlayer, 'AI', ScorePlayer, 'AI'])
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
-    test([HockeyPlayer, OraclePlayer])
+    # test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])

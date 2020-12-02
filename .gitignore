@@ -1,2 +1,5 @@
 data
 .vscode
+*.pyc
+model/__pycache__/*
+agent/__pycache__/*
