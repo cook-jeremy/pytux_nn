@@ -1,9 +1,9 @@
 import torch
 import torch.utils.tensorboard as tb
 import numpy as np
-from dataloader import load_loc_data
+from .dataloader import load_loc_data
 from torch.utils.data import Dataset, DataLoader
-from puck_detector import PuckDetector, save_model
+from .puck_detector import PuckDetector, save_model
 import matplotlib.pyplot as plt
 import torchvision.transforms.functional as TF
 import torchvision
@@ -46,6 +46,8 @@ def train(args):
             img, label = img.to(device), label.to(device)
 
             pred = model(img)
+            # print(pred.shape)
+            # print(label.shape)
             loss_val = loss(pred, label)
 
             if train_logger is not None:
