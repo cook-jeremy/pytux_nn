@@ -88,8 +88,8 @@ class HockeyPlayer:
         puck_present = self.puck_is(I)
         puck_present = puck_present.detach().numpy().item()
 
-        puck_x = (puck_data[1] - 200) / 400
-        puck_y = puck_data[2]
+        puck_x = (puck_data[0] - 200) / 400
+        puck_y = puck_data[1]
 
         steer = puck_x * 20
         accel = 0.5
@@ -122,7 +122,7 @@ class HockeyPlayer:
             ax1.add_artist(test)
 
             if puck_present > 50:
-                PREV_DRAW = plt.Circle(puck_data[1:], 10, ec='g', fill=False, lw=1.5)
+                PREV_DRAW = plt.Circle(puck_data, 10, ec='g', fill=False, lw=1.5)
                 ax1.add_artist(PREV_DRAW)
             else:
                 PREV_DRAW = None

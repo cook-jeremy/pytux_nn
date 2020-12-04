@@ -1,21 +1,22 @@
 import torch
 import torch.utils.tensorboard as tb
 import numpy as np
-from dataloader import load_loc_data
+from dataloader import load_seg_data
 from torch.utils.data import Dataset, DataLoader
-from puck_detector import PuckDetector, save_model
+from puck_seg import PuckSeg, save_model
 import matplotlib.pyplot as plt
 import torchvision.transforms.functional as TF
 import torchvision
+import os
+from os import path
 import shutil
 
 def train(args):
-    from os import path
-    model = PuckDetector()
+    model = PuckSeg()
     train_logger = None
     if args.log_dir is not None:
         train_path = path.join(args.log_dir, 'train')
-        if path.exists(train_path):
+        if os.path.exists(train_path):
             shutil.rmtree(train_path)
         train_logger = tb.SummaryWriter(train_path)
 
@@ -25,14 +26,15 @@ def train(args):
 
     model = model.to(device)
     if args.continue_training:
-        model.load_state_dict(torch.load(path.join(path.dirname(path.abspath(__file__)), 'puck_det.th')))
+        model.load_state_dict(torch.load(path.join(path.dirname(path.abspath(__file__)), 'puck_seg.th')))
 
-    loss = torch.nn.L1Loss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    #loss = torch.nn.L1Loss()
+    loss = torch.nn.BCEWithLogitsLoss(reduction='none')
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-6)
     
     #train_data = load_data(num_workers=args.num_workers)
     BATCH_SIZE = 32
-    train_data = load_loc_data(num_workers=args.num_workers, batch_size=BATCH_SIZE)
+    train_data = load_seg_data(num_workers=args.num_workers, batch_size=BATCH_SIZE)
 
     print('STARTING TRAINING')
 
@@ -40,17 +42,19 @@ def train(args):
     for epoch in range(args.num_epoch):
         model.train()
         losses = []
-
         for img, label in train_data:
-
+            
             img, label = img.to(device), label.to(device)
 
             pred = model(img)
+            
             loss_val = loss(pred, label)
+            loss_val[label == 1] *= 100
+            loss_val = loss_val.mean()
 
             if train_logger is not None:
                 train_logger.add_scalar('loss', loss_val, global_step)
-                if global_step % 1000 == 0:
+                if global_step % 50 == 0:
                     log(train_logger, img, label, pred, global_step)
 
             optimizer.zero_grad()
@@ -70,16 +74,24 @@ def train(args):
 def log(logger, img, label, pred, global_step):
     fig, ax = plt.subplots(1, 1)
     im = TF.to_pil_image(img[0].cpu())
-    resize = torchvision.transforms.Resize([300, 400])
-    im = resize(im)
     ax.imshow(im)
-    l = label[0].cpu().detach().numpy()
-    p = pred[0].cpu().detach().numpy()
-    ax.add_artist(plt.Circle(l, 10, ec='g', fill=False, lw=1.5))
-    ax.add_artist(plt.Circle(p, 10, ec='r', fill=False, lw=1.5))
-    logger.add_figure('viz', fig, global_step)
+    logger.add_figure('image', fig, global_step)
     del ax, fig
 
+    # fig, ax = plt.subplots(1, 1)
+    # pred_im = TF.to_pil_image(pred.cpu().detach().numpy()[0][0])
+    # ax.imshow(pred_im)
+    # logger.add_figure('pred', fig, global_step)
+    # del ax, fig
+
+    label_im = label.cpu().detach()[0][0]
+    label_grid = (torchvision.utils.make_grid(label_im) * 255).byte()
+    logger.add_image('label', label_grid, global_step=global_step)
+
+    pred_im = pred.cpu().detach()[0][0]
+    pred_grid = (torchvision.utils.make_grid(pred_im) * 255).byte()
+    logger.add_image('pred', pred_grid, global_step=global_step)
+    
 
 if __name__ == '__main__':
     import argparse

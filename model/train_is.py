@@ -29,7 +29,7 @@ def train(args):
         model.load_state_dict(torch.load(path.join(path.dirname(path.abspath(__file__)), 'puck_is.th')))
 
     loss = torch.nn.L1Loss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-6)
     
     #train_data = load_data(num_workers=args.num_workers)
     BATCH_SIZE = 32
@@ -42,15 +42,17 @@ def train(args):
         model.train()
         losses = []
         for img, label in train_data:
-
+            
+            # label = label.type(torch.FloatTensor)
             img, label = img.to(device), label.to(device)
 
             pred = model(img)
+            
             loss_val = loss(pred, label)
 
             if train_logger is not None:
                 train_logger.add_scalar('loss', loss_val, global_step)
-                if global_step % 20 == 0:
+                if global_step % 50 == 0:
                     log(train_logger, img, label, pred, global_step)
 
             optimizer.zero_grad()
@@ -62,7 +64,7 @@ def train(args):
         
         avg_loss = np.mean(losses)
         
-        print('epoch %-3d \t loss = %0.3f \t num_data = %d' % (epoch, avg_loss, global_step*BATCH_SIZE))
+        print('epoch %-3d \t loss = %0.3f' % (epoch, avg_loss))
         save_model(model)
 
     save_model(model)
@@ -73,14 +75,12 @@ def log(logger, img, label, pred, global_step):
     resize = torchvision.transforms.Resize([300, 400])
     im = resize(im)
     ax.imshow(im)
-    #print(tuple(label[0].cpu().detach().numpy()))
-    #print(tuple(pred[0].cpu().detach().numpy()))
 
-    l = label[0].cpu().detach().numpy().item()
-    p = pred[0].cpu().detach().numpy().item()
+    l = label[0].cpu().detach().numpy().item()*10
+    p = pred[0].cpu().detach().numpy().item()*10
 
     ax.add_artist(plt.Circle((10,l), 10, ec='y', fill=False, lw=1.5))
-    ax.add_artist(plt.Circle((10,p), 10, ec='b', fill=False, lw=1.5))
+    ax.add_artist(plt.Circle((20,p), 10, ec='b', fill=False, lw=1.5))
     logger.add_figure('viz', fig, global_step)
     del ax, fig
 

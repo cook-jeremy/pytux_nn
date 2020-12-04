@@ -370,17 +370,17 @@ class DataCollector(object):
                         has_puck = True
                         break
 
-            if has_puck:
-                output_path = '%s/%d_%06d.png' % (self.puck, i, t)
-                Image.fromarray(mask).save(output_path)
+            # if has_puck:
+            #     output_path = '%s/%d_%06d.png' % (self.puck, i, t)
+            #     Image.fromarray(mask).save(output_path)
 
             image = race.render_data[i].image       # np uint8 (h, w, 3) [0, 255]
             if not has_puck:
                 output_path = '%s/%d_%06d.png' % (self.image_np, i, t)
                 Image.fromarray(image).save(output_path)
-            else:
-                output_path = '%s/%d_%06d.png' % (self.image_p, i, t)
-                Image.fromarray(image).save(output_path)
+            # else:
+            #     output_path = '%s/%d_%06d.png' % (self.image_p, i, t)
+            #     Image.fromarray(image).save(output_path)
 
             # action = hack_dict['player_%d' % i]
             # output_path = '%s/%d_%06d.txt' % (self.action, i, t)
@@ -399,7 +399,7 @@ def run(agents, dest):
     data_collector = DataCollector(dest)
         
     tournament = Tournament(players)
-    score = tournament.play(max_frames=5000, save_callback=data_collector.save_frame)
+    score = tournament.play(max_frames=20000, save_callback=data_collector.save_frame)
 
     print('Final score', score)
 
@@ -420,7 +420,7 @@ def test(agents, dest=None):
 
 if __name__ == '__main__':
     # Collect an episode.
-    run([OraclePlayer, OraclePlayer, ScorePlayer, ScorePlayer], 'data')
+    # run(['AI', 'AI', 'AI', 'AI'], 'data')
     # test([ScorePlayer, 'AI', ScorePlayer, 'AI'])
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
-    # test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])
+    test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])

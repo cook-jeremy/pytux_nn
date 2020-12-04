@@ -13,9 +13,13 @@ IMAGE_PUCK_PATH = 'data/images/has_puck'
 IMAGE_NO_PUCK_PATH = 'data/images/no_puck'
 PUCK_PATH = 'data/puck'
 
+START = 7000
+END = 14000
+LIMIT_COUNT = 0
 
 class PuckLocationDataset(Dataset):
     def __init__(self):
+        global LIMIT_COUNT, START, END
         from glob import glob
         import os
         self.images = []
@@ -24,17 +28,33 @@ class PuckLocationDataset(Dataset):
 
         print('loading images...')
         for file in os.listdir(IMAGE_PUCK_PATH):
+            if LIMIT_COUNT < START:
+                LIMIT_COUNT += 1
+                continue
+            if LIMIT_COUNT == END:
+                break
             I = Image.open(os.path.join(IMAGE_PUCK_PATH,file))
             I = resize(I)
             I = F.to_tensor(I)
             self.images.append(I)
+            LIMIT_COUNT += 1
+            print('\rimage count: %d' % LIMIT_COUNT, end='\r')
 
-        print('puck peaks...')
+        LIMIT_COUNT = 0
+
+        print('loading puck peaks...')
         for file in os.listdir(PUCK_PATH):
+            if LIMIT_COUNT < START:
+                LIMIT_COUNT += 1
+                continue
+            if LIMIT_COUNT == END:
+                break
             I = Image.open(os.path.join(PUCK_PATH,file))
             I = F.to_tensor(I)
             peak = self.extract_peak(I)
             self.puck.append(peak)
+            LIMIT_COUNT += 1
+            print('\rpuck count: %d' % LIMIT_COUNT, end='\r')
 
     def extract_peak(self, image):
         nz = torch.nonzero(image)
@@ -63,34 +83,48 @@ class PuckLocationDataset(Dataset):
         puck = self.puck[idx]
         return image, puck
 
-MAX_PUCK = 5000
-
 class PuckIsDataset(Dataset):
     def __init__(self):
+        global LIMIT_COUNT, START, END
         from glob import glob
         import os
         self.images = []
         self.is_puck = []
         resize = torchvision.transforms.Resize([150, 200])
 
-        image_count = 0
+        print('loading puck images...')
         for file in os.listdir(IMAGE_PUCK_PATH):
-            # want an equal amount of images with puck and without puck, but data is skewed towards having puck so we need to limit
-            if image_count == MAX_PUCK:
+            if LIMIT_COUNT < START:
+                LIMIT_COUNT += 1
+                continue
+            if LIMIT_COUNT == END:
                 break
+
             I = Image.open(os.path.join(IMAGE_PUCK_PATH,file))
             I = resize(I)
             I = F.to_tensor(I)
             self.images.append(I)
             self.is_puck.append(100.0)
-            image_count += 1
+            LIMIT_COUNT += 1
+            print('\rimage puck count: %d' % LIMIT_COUNT, end='\r')
 
+        LIMIT_COUNT = 0
+
+        print('loading no puck images...')
         for file in os.listdir(IMAGE_NO_PUCK_PATH):
+            if LIMIT_COUNT < START:
+                LIMIT_COUNT += 1
+                continue
+            if LIMIT_COUNT == END:
+                break
+            
             I = Image.open(os.path.join(IMAGE_NO_PUCK_PATH,file))
             I = resize(I)
             I = F.to_tensor(I)
             self.images.append(I)
             self.is_puck.append(0.0)
+            LIMIT_COUNT += 1
+            print('\rimage no puck count: %d' % LIMIT_COUNT, end='\r')
 
     def __len__(self):
         return len(self.images)
@@ -100,6 +134,53 @@ class PuckIsDataset(Dataset):
         puck = self.is_puck[idx]
         return image, puck
 
+class PuckSegDataset(Dataset):
+    def __init__(self):
+        global LIMIT_COUNT, START, END
+        from glob import glob
+        import os
+        self.images = []
+        self.puck = []
+        resize = torchvision.transforms.Resize([152, 200])
+
+        print('loading images...')
+        for file in os.listdir(IMAGE_PUCK_PATH):
+            if LIMIT_COUNT < START:
+                LIMIT_COUNT += 1
+                continue
+            if LIMIT_COUNT == END:
+                break
+            I = Image.open(os.path.join(IMAGE_PUCK_PATH,file))
+            I = resize(I)
+            I = F.to_tensor(I)
+            self.images.append(I)
+            LIMIT_COUNT += 1
+            print('\rimage count: %d' % LIMIT_COUNT, end='\r')
+
+        LIMIT_COUNT = 0
+
+        print('loading puck peaks...')
+        for file in os.listdir(PUCK_PATH):
+            if LIMIT_COUNT < START:
+                LIMIT_COUNT += 1
+                continue
+            if LIMIT_COUNT == END:
+                break
+            I = Image.open(os.path.join(PUCK_PATH,file))
+            I = resize(I)
+            I = F.to_tensor(I)
+            self.puck.append(I)
+            LIMIT_COUNT += 1
+            print('\rpuck count: %d' % LIMIT_COUNT, end='\r')
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        image = self.images[idx]
+        puck = self.puck[idx]
+        return image, puck
+
 
 def load_loc_data(num_workers=4, batch_size=32):
     dataset = PuckLocationDataset()
@@ -107,6 +188,10 @@ def load_loc_data(num_workers=4, batch_size=32):
 
 def load_is_data(num_workers=4, batch_size=32):
     dataset = PuckIsDataset()
+    return DataLoader(dataset, num_workers=num_workers, batch_size=batch_size, shuffle=True, drop_last=True)
+
+def load_seg_data(num_workers=4, batch_size=32):
+    dataset = PuckSegDataset()
     return DataLoader(dataset, num_workers=num_workers, batch_size=batch_size, shuffle=True, drop_last=True)
 
 if __name__ == '__main__':
