@@ -235,6 +235,9 @@ class ScorePlayer:
 
         return action
 
+SAVE_COUNT = 0
+SAVE_AT = 10
+
 class Tournament:
     _singleton = None
 
@@ -264,6 +267,7 @@ class Tournament:
         self.k.step()
 
     def play(self, save=None, max_frames=50, save_callback=None):
+        global SAVE_COUNT, SAVE_AT
         state = pystk.WorldState()
         
         if save is not None:
@@ -310,8 +314,11 @@ class Tournament:
                     'acceleration': action.acceleration
                     }
 
-            if save_callback is not None:
+            if save_callback is not None and SAVE_COUNT == SAVE_AT:
+                SAVE_COUNT = 0
                 save_callback(self.k, state, t, HACK_DICT)
+            else:
+                SAVE_COUNT += 1
 
             s = self.k.step(list_actions)
             if not s:  # Game over
@@ -342,13 +349,13 @@ class DataCollector(object):
         if not os.path.exists(self.image):
             os.mkdir(self.image)
 
-        self.image_p = os.path.join(self.image, 'has_puck')
-        if not os.path.exists(self.image_p): 
-            os.mkdir(self.image_p)
+        # self.image_p = os.path.join(self.image, 'has_puck')
+        # if not os.path.exists(self.image_p): 
+        #     os.mkdir(self.image_p)
 
-        self.image_np = os.path.join(self.image, 'no_puck')
-        if not os.path.exists(self.image_np): 
-            os.mkdir(self.image_np)
+        # self.image_np = os.path.join(self.image, 'no_puck')
+        # if not os.path.exists(self.image_np): 
+        #     os.mkdir(self.image_np)
 
         self.puck = os.path.join(destination, 'puck')
         if not os.path.exists(self.puck):
@@ -362,22 +369,29 @@ class DataCollector(object):
         # player
         for i in range(4):
             mask = (race.render_data[i].instance == 134217729)
+            output_path = '%s/%d_%06d.png' % (self.puck, i, t)
+            Image.fromarray(mask).save(output_path)
             
-            has_puck = False
-            for row in mask:
-                for b in row:
-                    if b:
-                        has_puck = True
-                        break
+            image = race.render_data[i].image       # np uint8 (h, w, 3) [0, 255]
+            output_path = '%s/%d_%06d.png' % (self.image, i, t)
+            Image.fromarray(image).save(output_path)
+
+
+            # has_puck = False
+            # for row in mask:
+            #     for b in row:
+            #         if b:
+            #             has_puck = True
+            #             break
 
             # if has_puck:
             #     output_path = '%s/%d_%06d.png' % (self.puck, i, t)
             #     Image.fromarray(mask).save(output_path)
 
-            image = race.render_data[i].image       # np uint8 (h, w, 3) [0, 255]
-            if not has_puck:
-                output_path = '%s/%d_%06d.png' % (self.image_np, i, t)
-                Image.fromarray(image).save(output_path)
+            # image = race.render_data[i].image       # np uint8 (h, w, 3) [0, 255]
+            # if not has_puck:
+            #     output_path = '%s/%d_%06d.png' % (self.image_np, i, t)
+            #     Image.fromarray(image).save(output_path)
             # else:
             #     output_path = '%s/%d_%06d.png' % (self.image_p, i, t)
             #     Image.fromarray(image).save(output_path)
@@ -399,7 +413,7 @@ def run(agents, dest):
     data_collector = DataCollector(dest)
         
     tournament = Tournament(players)
-    score = tournament.play(max_frames=20000, save_callback=data_collector.save_frame)
+    score = tournament.play(max_frames=50000, save_callback=data_collector.save_frame)
 
     print('Final score', score)
 
@@ -420,7 +434,7 @@ def test(agents, dest=None):
 
 if __name__ == '__main__':
     # Collect an episode.
-    # run(['AI', 'AI', 'AI', 'AI'], 'data')
+    run([ScorePlayer, ScorePlayer, ScorePlayer, 'AI'], 'data')
     # test([ScorePlayer, 'AI', ScorePlayer, 'AI'])
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
-    test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])
+    # test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])

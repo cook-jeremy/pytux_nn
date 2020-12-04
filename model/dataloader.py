@@ -9,12 +9,13 @@ from torch.utils.data import Dataset, DataLoader
 #import torchvision.transforms.functional as TF
 #from . import dense_transforms
 
-IMAGE_PUCK_PATH = 'data/images/has_puck'
+#IMAGE_PUCK_PATH = 'data/images/has_puck'
+IMAGE_PUCK_PATH = 'data/images'
 IMAGE_NO_PUCK_PATH = 'data/images/no_puck'
 PUCK_PATH = 'data/puck'
 
-START = 7000
-END = 14000
+START = 0
+END = 7000
 LIMIT_COUNT = 0
 
 class PuckLocationDataset(Dataset):
@@ -60,8 +61,9 @@ class PuckLocationDataset(Dataset):
         nz = torch.nonzero(image)
 
         if nz.numel() == 0:
-            print('ERROR IN LOADING PUCK PEAKS!!!')
-            return [0,0]
+            # predict a location behind the player
+            ret_ten = torch.Tensor([200, 260])
+            return ret_ten
 
         xs = []
         ys = []

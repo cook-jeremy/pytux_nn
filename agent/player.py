@@ -18,6 +18,7 @@ FIRST = True
 IM = None
 BACKUP = False
 PREV_DRAW = None
+PREV_DRAW2 = None
 LAST_X = None
 
 def load_detector():
@@ -61,7 +62,7 @@ class HockeyPlayer:
         self.resize = torchvision.transforms.Resize([150, 200])
       
     def act(self, image, player_info):
-        global FIRST, IM, BACKUP, PREV_DRAW, LAST_X
+        global FIRST, IM, BACKUP, PREV_DRAW, PREV_DRAW2, LAST_X
 
         score_goal = None
         if self.team == 0:
@@ -70,7 +71,7 @@ class HockeyPlayer:
             score_goal = GOAL_1
 
         front = np.array(player_info.kart.front)[[0,2]]
-        location = np.array(player_info.kart.location)[[0,2]]
+        kart = np.array(player_info.kart.location)[[0,2]]
 
         # neural network gets location of puck
         
@@ -88,10 +89,24 @@ class HockeyPlayer:
         puck_present = self.puck_is(I)
         puck_present = puck_present.detach().numpy().item()
 
-        puck_x = (puck_data[0] - 200) / 400
+        puck_x = puck_data[0]
         puck_y = puck_data[1]
 
-        steer = puck_x * 20
+        if player_info.kart.id == 2:
+            print('-------------------')
+            print('puck_x before: ', puck_x)
+
+        # player to goal
+        v = front - score_goal
+        v = 70 * (v / np.linalg.norm(v))
+
+        new_puck_x = puck_x + v[0]
+        
+        if player_info.kart.id == 2:
+            print('adj: ', v[0])
+            print('puck_x after: ', new_puck_x)
+
+        steer = ((new_puck_x - 200) / 400) * 20
         accel = 0.5
         brake = False
         drift = False
@@ -107,7 +122,7 @@ class HockeyPlayer:
                 steer = -0.6
 
         # visualize the controller in real time
-        if player_info.kart.id == 0:
+        if player_info.kart.id == 2:
             ax1 = plt.subplot(111)
             if FIRST:
                 IM = ax1.imshow(image)
@@ -117,18 +132,21 @@ class HockeyPlayer:
 
             if PREV_DRAW is not None:
                 PREV_DRAW.remove()
+                PREV_DRAW2.remove()
 
             test = plt.Circle(PLAYER_LOC, 10, ec='b', fill=False, lw=1.5)
             ax1.add_artist(test)
 
             if puck_present > 50:
                 PREV_DRAW = plt.Circle(puck_data, 10, ec='g', fill=False, lw=1.5)
+                PREV_DRAW2 = plt.Circle((new_puck_x, puck_y), 10, ec='r', fill=False, lw=1.5)
                 ax1.add_artist(PREV_DRAW)
+                ax1.add_artist(PREV_DRAW2)
             else:
                 PREV_DRAW = None
 
-            if puck_present < 50:
-                print('PUCK out of sight')
+            # if puck_present < 50:
+            #     print('PUCK out of sight')
 
             plt.pause(0.001)
 

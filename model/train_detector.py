@@ -27,8 +27,9 @@ def train(args):
     if args.continue_training:
         model.load_state_dict(torch.load(path.join(path.dirname(path.abspath(__file__)), 'puck_det.th')))
 
-    loss = torch.nn.L1Loss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    #loss = torch.nn.L1Loss()
+    loss = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-6)
     
     #train_data = load_data(num_workers=args.num_workers)
     BATCH_SIZE = 32
@@ -50,7 +51,7 @@ def train(args):
 
             if train_logger is not None:
                 train_logger.add_scalar('loss', loss_val, global_step)
-                if global_step % 1000 == 0:
+                if global_step % 100 == 0:
                     log(train_logger, img, label, pred, global_step)
 
             optimizer.zero_grad()

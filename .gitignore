@@ -1,4 +1,5 @@
 data
+data2
 .vscode
 *.pyc
 model/__pycache__/*
