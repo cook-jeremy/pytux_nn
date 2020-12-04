@@ -399,7 +399,7 @@ def run(agents, dest):
     data_collector = DataCollector(dest)
         
     tournament = Tournament(players)
-    score = tournament.play(max_frames=5000, save_callback=data_collector.save_frame)
+    score = tournament.play(max_frames=1000, save_callback=data_collector.save_frame)
 
     print('Final score', score)
 
@@ -420,7 +420,7 @@ def test(agents, dest=None):
 
 if __name__ == '__main__':
     # Collect an episode.
-    run([OraclePlayer, OraclePlayer, ScorePlayer, ScorePlayer], 'data')
+    run([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'data')
     # test([ScorePlayer, 'AI', ScorePlayer, 'AI'])
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
     # test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])
