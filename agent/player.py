@@ -107,9 +107,14 @@ class HockeyPlayer:
             print('puck_x after: ', new_puck_x)
 
         steer = ((new_puck_x - 200) / 400) * 20
-        accel = 0.5
+        accel = 1
         brake = False
         drift = False
+
+        if puck_y > 225 and puck_x > 150 and puck_x < 250:
+            accel = 0
+            brake = True
+            steer = -0.6
 
         # if puck_present < 50:
         #     accel = 0

@@ -434,7 +434,7 @@ def test(agents, dest=None):
 
 if __name__ == '__main__':
     # Collect an episode.
-    run([ScorePlayer, ScorePlayer, ScorePlayer, 'AI'], 'data')
+    # run([ScorePlayer, ScorePlayer, ScorePlayer, 'AI'], 'data')
     # test([ScorePlayer, 'AI', ScorePlayer, 'AI'])
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
-    # test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])
+    test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])
