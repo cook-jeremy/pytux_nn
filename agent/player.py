@@ -57,8 +57,8 @@ class HockeyPlayer:
         self.team = player_id % 2
         self.puck_detector = load_detector()
         self.puck_detector.eval()
-        self.puck_is = load_is()
-        self.puck_is.eval()
+        # self.puck_is = load_is()
+        # self.puck_is.eval()
         self.resize = torchvision.transforms.Resize([150, 200])
       
     def act(self, image, player_info):
@@ -86,13 +86,13 @@ class HockeyPlayer:
         puck_data = self.puck_detector(I)
         puck_data = puck_data.detach().numpy()[0]
 
-        puck_present = self.puck_is(I)
-        puck_present = puck_present.detach().numpy().item()
+        # puck_present = self.puck_is(I)
+        # puck_present = puck_present.detach().numpy().item()
 
         puck_x = puck_data[0]
         puck_y = puck_data[1]
 
-        if player_info.kart.id == 2:
+        if player_info.kart.id == 0:
             print('-------------------')
             print('puck_x before: ', puck_x)
 
@@ -102,7 +102,7 @@ class HockeyPlayer:
 
         new_puck_x = puck_x + v[0]
         
-        if player_info.kart.id == 2:
+        if player_info.kart.id == 0:
             print('adj: ', v[0])
             print('puck_x after: ', new_puck_x)
 
@@ -111,18 +111,18 @@ class HockeyPlayer:
         brake = False
         drift = False
 
-        if puck_present < 50:
-            accel = 0
-            brake = True
-            if LAST_X is None:
-                steer = -0.5
-            elif LAST_X < 0:
-                steer = 0.6
-            elif LAST_X >= 0:
-                steer = -0.6
+        # if puck_present < 50:
+        #     accel = 0
+        #     brake = True
+        #     if LAST_X is None:
+        #         steer = -0.5
+        #     elif LAST_X < 0:
+        #         steer = 0.6
+        #     elif LAST_X >= 0:
+        #         steer = -0.6
 
         # visualize the controller in real time
-        if player_info.kart.id == 2:
+        if player_info.kart.id == 0:
             ax1 = plt.subplot(111)
             if FIRST:
                 IM = ax1.imshow(image)
@@ -137,21 +137,18 @@ class HockeyPlayer:
             test = plt.Circle(PLAYER_LOC, 10, ec='b', fill=False, lw=1.5)
             ax1.add_artist(test)
 
-            if puck_present > 50:
-                PREV_DRAW = plt.Circle(puck_data, 10, ec='g', fill=False, lw=1.5)
-                PREV_DRAW2 = plt.Circle((new_puck_x, puck_y), 10, ec='r', fill=False, lw=1.5)
-                ax1.add_artist(PREV_DRAW)
-                ax1.add_artist(PREV_DRAW2)
-            else:
-                PREV_DRAW = None
+            PREV_DRAW = plt.Circle(puck_data, 10, ec='g', fill=False, lw=1.5)
+            PREV_DRAW2 = plt.Circle((new_puck_x, puck_y), 10, ec='r', fill=False, lw=1.5)
+            ax1.add_artist(PREV_DRAW)
+            ax1.add_artist(PREV_DRAW2)
 
             # if puck_present < 50:
             #     print('PUCK out of sight')
 
             plt.pause(0.001)
 
-        if puck_present > 50:
-            LAST_X = puck_x
+        # if puck_present > 50:
+        #     LAST_X = puck_x
 
         action = {
             'steer': steer,
