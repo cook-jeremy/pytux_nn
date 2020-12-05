@@ -13,7 +13,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
-from agent.player import HockeyPlayer
+from agent.player import HockeyPlayer, GoaliePlayer
 
 HACK_DICT = dict()
 
@@ -437,4 +437,4 @@ if __name__ == '__main__':
     # run([ScorePlayer, ScorePlayer, ScorePlayer, 'AI'], 'data')
     # test([ScorePlayer, 'AI', ScorePlayer, 'AI'])
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
-    test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])
+    test([GoaliePlayer, 'AI', HockeyPlayer, 'AI'])

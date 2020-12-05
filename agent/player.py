@@ -179,13 +179,14 @@ class GoaliePlayer:
         self.player_id = player_id
         self.kart = 'tux'
         self.team = player_id % 2
-        self.puck_detector = load_model()
+        self.puck_detector = load_detector()
         self.puck_detector.eval()
         #self.goalie_up_direction = True
         #self.goalie_postion = 0
+        self.resize = torchvision.transforms.Resize([150, 200])
       
     def act(self, image, player_info):
-        global FIRST, IM, BACKUP
+        global FIRST, IM, BACKUP, PREV_DRAW, PREV_DRAW2
         
         other_goal = None
         team_goal = None
@@ -202,8 +203,13 @@ class GoaliePlayer:
         location = np.array(player_info.kart.location)[[0,2]]
 
         device = torch.device('cpu')
-        I = F.to_tensor(image)
+
+        I = Image.fromarray(image)
+        I = self.resize(I)
+        I = F.to_tensor(I)
+        I = I[None, :]
         I = I.to(device)
+
         puck_loc = self.puck_detector(I)
         puck_loc = puck_loc.detach().numpy()[0]
 
@@ -224,39 +230,44 @@ class GoaliePlayer:
             drift = False
 
             dist_to_goal = np.linalg.norm(v)
-            if(dist_to_goal < 1):
+            if(dist_to_goal < 5):
+              print("close to goal")
               v = location - other_goal
      
             theta = np.arccos(np.dot(u, v))
-            signed_theta = -np.sign(np.cross(u, v)) * theta
-            steer = 20 * signed_theta
+            # signed_theta = -np.sign(np.cross(u, v)) * theta
+            steer = 20 * theta
             
 
         else:
           u = location - puck_loc
-          u = u / np.linalg.norm(u)
           dist_to_puck = np.linalg.norm(u)
-          if(dist_to_puck < 20):
+          u = u / np.linalg.norm(u)
+          
+          if(dist_to_puck < 10):
+            print("puck is nearby", dist_to_puck)
             v = location - front
             v = v / np.linalg.norm(v)
 
             theta = np.arccos(np.dot(u, v))
-            signed_theta = -np.sign(np.cross(u, v)) * theta
+            # signed_theta = -np.sign(np.cross(u, v)) * theta
 
 
-            steer = 20 * signed_theta
+            steer = 20 * theta
             accel = 0.1
             brake = False
             drift = False
           else:
+            print("puck is far")
             steer = 0
+            theta = 0
             accel = 0
             brake = False
             drift = False
 
 
         if np.degrees(theta) > 60 and np.degrees(theta) < 90:
-                drift = True
+            drift = True
 
             if np.degrees(theta) > 90 and not BACKUP:
                 BACKUP = True
@@ -271,18 +282,31 @@ class GoaliePlayer:
           
             
 
-        # visualize the controller in real time
+       # visualize the controller in real time
         if player_info.kart.id == 0:
             ax1 = plt.subplot(111)
+
             if FIRST:
                 IM = ax1.imshow(image)
                 FIRST = False
             else:
                 IM.set_data(image)
 
-            #ax1.add_artist(plt.Circle(puck_loc, 10, ec='g', fill=False, lw=1.5))
-            #print('loc: ' + str(location))
-            #print('team goal loc: ' + str(goal_point))
+            if PREV_DRAW is not None:
+                PREV_DRAW.remove()
+                PREV_DRAW2.remove()
+
+            test = plt.Circle(PLAYER_LOC, 10, ec='b', fill=False, lw=1.5)
+            ax1.add_artist(test)
+
+            PREV_DRAW = plt.Circle(puck_loc, 10, ec='g', fill=False, lw=1.5)
+            PREV_DRAW2 = plt.Circle((puck_x, puck_y), 10, ec='r', fill=False, lw=1.5)
+            ax1.add_artist(PREV_DRAW)
+            ax1.add_artist(PREV_DRAW2)
+
+            # if puck_present < 50:
+            #     print('PUCK out of sight')
+
             plt.pause(0.001)
 
         action = {
