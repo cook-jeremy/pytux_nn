@@ -164,3 +164,133 @@ class HockeyPlayer:
             'rescue': False}
 
         return action
+
+
+
+class GoaliePlayer:
+    
+    kart = ""
+    
+    def __init__(self, player_id = 0):
+        """
+        Set up a soccer player.
+        The player_id starts at 0 and increases by one for each player added. You can use the player id to figure out your team (player_id % 2), or assign different roles to different agents.
+        """
+        self.player_id = player_id
+        self.kart = 'tux'
+        self.team = player_id % 2
+        self.puck_detector = load_model()
+        self.puck_detector.eval()
+        #self.goalie_up_direction = True
+        #self.goalie_postion = 0
+      
+    def act(self, image, player_info):
+        global FIRST, IM, BACKUP
+        
+        other_goal = None
+        team_goal = None
+        
+        print(self.team)
+        if self.team == 0:
+            team_goal = GOAL_1
+            other_goal = GOAL_0
+        else:
+            team_goal = GOAL_0
+            other_goal = GOAL_1
+
+        front = np.array(player_info.kart.front)[[0,2]]
+        location = np.array(player_info.kart.location)[[0,2]]
+
+        device = torch.device('cpu')
+        I = F.to_tensor(image)
+        I = I.to(device)
+        puck_loc = self.puck_detector(I)
+        puck_loc = puck_loc.detach().numpy()[0]
+
+        #too_far = False
+        
+        puck_x = puck_loc[0]
+        puck_y = puck_loc[1]
+
+        if(puck_y > 200 and puck_x >= 150 and puck_x <= 250):
+            u = location - front
+            u = u / np.linalg.norm(u)
+
+            v = location - team_goal
+            v = v / np.linalg.norm(v)
+
+            accel = 0.1
+            brake = False
+            drift = False
+
+            dist_to_goal = np.linalg.norm(v)
+            if(dist_to_goal < 1):
+              v = location - other_goal
+     
+            theta = np.arccos(np.dot(u, v))
+            signed_theta = -np.sign(np.cross(u, v)) * theta
+            steer = 20 * signed_theta
+            
+
+        else:
+          u = location - puck_loc
+          u = u / np.linalg.norm(u)
+          dist_to_puck = np.linalg.norm(u)
+          if(dist_to_puck < 20):
+            v = location - front
+            v = v / np.linalg.norm(v)
+
+            theta = np.arccos(np.dot(u, v))
+            signed_theta = -np.sign(np.cross(u, v)) * theta
+
+
+            steer = 20 * signed_theta
+            accel = 0.1
+            brake = False
+            drift = False
+          else:
+            steer = 0
+            accel = 0
+            brake = False
+            drift = False
+
+
+        if np.degrees(theta) > 60 and np.degrees(theta) < 90:
+                drift = True
+
+            if np.degrees(theta) > 90 and not BACKUP:
+                BACKUP = True
+
+            if BACKUP:
+                if np.degrees(theta) > 30:
+                    accel = 0
+                    brake = True
+                    steer = -steer
+                else:
+                    BACKUP = False
+          
+            
+
+        # visualize the controller in real time
+        if player_info.kart.id == 0:
+            ax1 = plt.subplot(111)
+            if FIRST:
+                IM = ax1.imshow(image)
+                FIRST = False
+            else:
+                IM.set_data(image)
+
+            #ax1.add_artist(plt.Circle(puck_loc, 10, ec='g', fill=False, lw=1.5))
+            #print('loc: ' + str(location))
+            #print('team goal loc: ' + str(goal_point))
+            plt.pause(0.001)
+
+        action = {
+            'steer': steer,
+            'acceleration': accel,
+            'brake': brake,
+            'drift': drift,
+            'nitro': False, 
+            'rescue': False}
+
+        return action
