@@ -180,7 +180,7 @@ class GoaliePlayer:
         self.player_id = player_id
         self.kart = 'tux'
         self.team = player_id % 2
-        self.puck_detector = load_model()
+        self.puck_detector = load_detector()
         self.puck_detector.eval()
         #self.goalie_up_direction = True
         #self.goalie_postion = 0
@@ -241,7 +241,7 @@ class GoaliePlayer:
           else:
             too_far = True
         
-        if(!puck_on_screen or too_far):
+        if(not puck_on_screen or too_far):
             if(too_far):
               print("too far")
             else:
@@ -257,7 +257,6 @@ class GoaliePlayer:
             brake = False
             drift = False
 
-            dist_to_goal = np.linalg.norm(v)
             if(dist_to_goal < 3):
               print("close to goal", dist_to_goal)
               v = location - other_goal
@@ -272,10 +271,10 @@ class GoaliePlayer:
 
 
         if np.degrees(theta) > 60 and np.degrees(theta) < 90:
-                drift = True
+            drift = True
 
             if np.degrees(theta) > 90 and not BACKUP:
-                BACKUP = True
+              BACKUP = True
 
             if BACKUP:
                 if np.degrees(theta) > 30:
