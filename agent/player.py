@@ -222,13 +222,13 @@ class GoaliePlayer:
         
         if(not puck_not_on_screen):
           # print("puck on screen")
-          print("puck_loc:", puck_loc)
+          # print("puck_loc:", puck_loc)
           u = [175,200] - puck_loc  # distance using image coordinates doesn't work :(
           dist_to_puck = np.linalg.norm(u)
           u = u / np.linalg.norm(u)
-          print("puck_dist", dist_to_puck)
-          if(dist_to_puck > 125):
-            # print("puck nearby", dist_to_puck)
+          # print("puck_dist", dist_to_puck)
+          if(puck_y > 50):
+            # print("puck nearby", puck_y)
             v = location - front
             v = v / np.linalg.norm(v)
 
@@ -236,21 +236,21 @@ class GoaliePlayer:
             signed_theta = -np.sign(np.cross(u, v)) * theta
 
 
-            steer = 20 * signed_theta
-            accel = 0.1
-            brake = False
-            drift = False
-            # steer = ((puck_x - 200) / 400) * 20
-            # accel = 1
+            # steer = 20 * signed_theta
+            # accel = 0.1
             # brake = False
             # drift = False
-            # return {
-            # 'steer': steer,
-            # 'acceleration': accel,
-            # 'brake': brake,
-            # 'drift': drift,
-            # 'nitro': False, 
-            # 'rescue': False}
+            steer = ((puck_x - 200) / 400) * 20
+            accel = 0.25
+            brake = False
+            drift = False
+            return {
+            'steer': steer,
+            'acceleration': accel,
+            'brake': brake,
+            'drift': drift,
+            'nitro': False, 
+            'rescue': False}
           else:
             too_far = True
         
