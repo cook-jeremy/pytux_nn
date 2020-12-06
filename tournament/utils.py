@@ -546,4 +546,4 @@ if __name__ == '__main__':
     # collect_puck_loc([ScorePlayer, ScorePlayer, ScorePlayer, ScorePlayer], 'data', 10000)
     # test([ScorePlayer, 'AI', ScorePlayer, 'AI'])
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
-    test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])
+    test([HockeyPlayer, DontMove, HockeyPlayer, 'AI'])
