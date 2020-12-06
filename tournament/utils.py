@@ -7,6 +7,8 @@ from torch.utils.data import Dataset, DataLoader
 import os
 import matplotlib.pyplot as plt
 import torch
+import random
+from torchvision.transforms import functional as F
 
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -41,6 +43,21 @@ class DummyPlayer:
     
     def __call__(self, image, player_info):
         return dict()
+
+class DontMove:
+    def __init__(self, player_id = 0):
+        self.kart = 'wilber'
+        
+    def act(self, image, player_info):
+        action = {
+            'steer': 0,
+            'acceleration': 0,
+            'brake': False,
+            'drift': False,
+            'nitro': False, 
+            'rescue': False
+        }
+        return action
 
 FIRST = True
 IM = None
@@ -131,6 +148,14 @@ class OraclePlayer:
 GOAL_0 = np.array([0, 64.5])
 GOAL_1 = np.array([0, -64.5])
 
+def load_detector():
+    from model.puck_detector import PuckDetector
+    from torch import load
+    from os import path
+    r = PuckDetector()
+    r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), '../model/puck_det.th'), map_location='cpu'))
+    return r
+
 class ScorePlayer:
     kart = ""
     
@@ -149,6 +174,33 @@ class ScorePlayer:
             self.kart = 'xue'
         
         self.team = player_id % 2
+
+        self.puck_detector = load_detector()
+        self.puck_detector.eval()
+        import torchvision
+        self.resize = torchvision.transforms.Resize([150, 200])
+
+    def get_puck_coords(self, image):
+        device = torch.device('cpu')
+        I = Image.fromarray(image)
+        I = self.resize(I)
+        I = F.to_tensor(I)
+        I = I[None, :]
+        I = I.to(device)
+        puck_data = self.puck_detector(I)
+        puck_data = puck_data.detach().numpy()[0]
+        return puck_data
+
+    def extract_peak(self, nz):
+        xs = []
+        ys = []
+        for i in enumerate(nz):
+            xs.append(i[1][1].item())
+            ys.append(i[1][2].item())
+        
+        avg_x = sum(xs) / len(xs)
+        avg_y = sum(ys) / len(ys)
+        return [avg_y, avg_x]
         
     def act(self, image, player_info):
         """
@@ -172,7 +224,7 @@ class ScorePlayer:
         u = front - kart
         u = u / np.linalg.norm(u)
 
-        # to puck
+        # player to puck
         v = puck - kart
         v = v / np.linalg.norm(v)
 
@@ -180,6 +232,7 @@ class ScorePlayer:
         w = puck - score_goal
         w = w / np.linalg.norm(w)
 
+        # adjust for scoring
         v2 = v + (w / 2)
         v2 = v2 / np.linalg.norm(v2)
 
@@ -187,7 +240,7 @@ class ScorePlayer:
         signed_theta = -np.sign(np.cross(u, v2)) * theta
 
         steer = 5*signed_theta
-        accel = 0.5
+        accel = random.uniform(0.4, 0.8)
         brake = False
         drift = False
 
@@ -204,6 +257,28 @@ class ScorePlayer:
                 steer = -steer
             else:
                 BACKUP = False
+
+
+        p_info = []
+        mask = (HACK_DICT['race'].render_data[self.player_id].instance == 134217729)
+        mask = F.to_tensor(mask)
+        nz = torch.nonzero(mask)
+
+        if nz.numel() == 0:
+            HACK_DICT['player_bool_%d' % self.player_id] = False
+        else:
+            HACK_DICT['player_bool_%d' % self.player_id] = True
+
+            p_info.extend(kart)
+            p_info.extend(u)
+            peak = self.extract_peak(nz)
+            p_info.extend(peak)
+            
+        #test = self.get_puck_coords(image)
+        #p_info.extend(self.get_puck_coords(image))
+
+        HACK_DICT['player_info_%d' % self.player_id] = p_info
+        HACK_DICT['puck_vec_%d' % self.player_id] = (puck - kart)
         
         # visualize the controller in real time
         # if player_info.kart.id == 0:
@@ -214,14 +289,18 @@ class ScorePlayer:
         #     else:
         #         IM.set_data(image)
             
-        #     print('p_to_fron: ', u)
-        #     print('p_to_puck: ', v)
-        #     print('puck_to_g: ', w)
-        #     print('aim_vec__: ', v2)
-        #     print('signed theta: ', signed_theta)
-        #     print('steer: ', steer)
-        #     print('loc: ' + str(kart))
-        #     print('-----------------------')
+        #     # print('p_to_fron: ', u)
+        #     # print('WORLD p_to_puck: ', (puck - kart))
+        #     # puck_xy = self.get_puck_coords(image)
+        #     # screen_p_to_puck = np.array([200, 180]) - puck_xy
+        #     # screen_p_to_puck[0] = -screen_p_to_puck[0]
+        #     # print('SCREEN p_to_puck: ', screen_p_to_puck)
+        #     # print('puck_to_g: ', w)
+        #     # print('aim_vec__: ', v2)
+        #     # print('signed theta: ', signed_theta)
+        #     # print('steer: ', steer)
+        #     # print('loc: ' + str(kart))
+        #     # print('-----------------------')
         #     plt.pause(0.001)
         
 
@@ -314,11 +393,10 @@ class Tournament:
                     'acceleration': action.acceleration
                     }
 
-            if save_callback is not None and SAVE_COUNT == SAVE_AT:
-                SAVE_COUNT = 0
+            if save_callback is not None:
                 save_callback(self.k, state, t, HACK_DICT)
-            else:
-                SAVE_COUNT += 1
+            
+            SAVE_COUNT += 1
 
             s = self.k.step(list_actions)
             if not s:  # Game over
@@ -338,6 +416,9 @@ class Tournament:
     def close(self):
         self.k.stop()
         del self.k
+
+FINAL_INPUT = []
+FINAL_LABEL = []
 
 class DataCollector(object):
     def __init__(self, destination):
@@ -365,6 +446,21 @@ class DataCollector(object):
         # if not os.path.exists(self.action): 
         #     os.mkdir(self.action)
 
+    def save_puck_loc(self, race, state, t, hack_dict):
+        global FINAL_INPUT, FINAL_LABEL
+
+        for i in range(4):
+            if not HACK_DICT['player_bool_%d' % i]:
+                continue
+
+            # player info
+            pli = torch.Tensor(hack_dict['player_info_%d' % i])
+            # puck info
+            puu = torch.Tensor(hack_dict['puck_vec_%d' % i])
+
+            FINAL_INPUT.append(pli)
+            FINAL_LABEL.append(puu)
+
     def save_frame(self, race, state, t, hack_dict):
         # player
         for i in range(4):
@@ -375,7 +471,6 @@ class DataCollector(object):
             image = race.render_data[i].image       # np uint8 (h, w, 3) [0, 255]
             output_path = '%s/%d_%06d.png' % (self.image, i, t)
             Image.fromarray(image).save(output_path)
-
 
             # has_puck = False
             # for row in mask:
@@ -400,8 +495,7 @@ class DataCollector(object):
             # output_path = '%s/%d_%06d.txt' % (self.action, i, t)
             # pathlib.Path(output_path).write_text('%.3f %.3f' % (action['steer'], action['acceleration']))
 
-
-def run(agents, dest):
+def collect_data(agents, dest, num_frames):
     players = []
 
     for i, player in enumerate(agents):
@@ -411,15 +505,30 @@ def run(agents, dest):
             players.append(Player(player(i), i % 2))
 
     data_collector = DataCollector(dest)
-        
     tournament = Tournament(players)
-    score = tournament.play(max_frames=50000, save_callback=data_collector.save_frame)
-
+    score = tournament.play(max_frames=num_frames, save_callback=data_collector.save_frame)
     print('Final score', score)
+
+def collect_puck_loc(agents, dest, num_frames):
+    import pickle
+    global FINAL_INPUT, FINAL_LABEL
+    players = []
+    for i, player in enumerate(agents):
+        if player == 'AI':
+            players.append(DummyPlayer(i % 2))
+        else:
+            players.append(Player(player(i), i % 2))
+
+    data_collector = DataCollector(dest)
+    tournament = Tournament(players)
+    score = tournament.play(max_frames=num_frames, save_callback=data_collector.save_puck_loc)
+    print('Final score', score)
+    print("length of data: ", len(FINAL_LABEL))
+    pickle.dump(FINAL_INPUT, open("data/puck_info.p", "wb"))
+    pickle.dump(FINAL_LABEL, open("data/puck_vec.p", "wb"))
 
 def test(agents, dest=None):
     players = []
-
     for i, player in enumerate(agents):
         if player == 'AI':
             players.append(DummyPlayer(i % 2))
@@ -429,12 +538,12 @@ def test(agents, dest=None):
     tournament = Tournament(players)
     #score = tournament.play(save=dest, max_frames=200)
     score = tournament.play(max_frames=10000)
-
     print('Final score', score)
 
 if __name__ == '__main__':
     # Collect an episode.
-    # run([ScorePlayer, ScorePlayer, ScorePlayer, 'AI'], 'data')
+    # collect_data([ScorePlayer, ScorePlayer, ScorePlayer, 'AI'], 'data', 12500)
+    # collect_puck_loc([ScorePlayer, ScorePlayer, ScorePlayer, ScorePlayer], 'data', 10000)
     # test([ScorePlayer, 'AI', ScorePlayer, 'AI'])
     # test([OraclePlayer, OraclePlayer, OraclePlayer, OraclePlayer], 'test')
     test([HockeyPlayer, 'AI', HockeyPlayer, 'AI'])

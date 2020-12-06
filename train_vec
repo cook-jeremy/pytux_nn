@@ -1,0 +1,10 @@
+#!/bin/bash
+echo "Starting VECTOR training"
+for i in {1..500}
+do
+    echo "starting iteration $i"
+    rm data/puck_info.p
+    rm data/puck_vec.p
+    python3 tournament/utils.py
+    python3 model/train_vec.py --log_dir=/tmp -n 100 -c
+done

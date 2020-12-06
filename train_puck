@@ -1,0 +1,9 @@
+#!/bin/bash
+echo "Starting training"
+for i in {1..500}
+do
+    echo "starting iteration $i"
+    rm -rf data
+    python3 tournament/utils.py
+    python3 model/train_detector.py --log_dir=/tmp -n 30 -c
+done
