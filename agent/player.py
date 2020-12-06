@@ -61,6 +61,7 @@ class HockeyPlayer:
         # self.puck_is = load_is()
         # self.puck_is.eval()
         self.resize = torchvision.transforms.Resize([150, 200])
+        self.is_right = False
       
     def act(self, image, player_info):
         global FIRST, IM, BACKUP, PREV_DRAW, PREV_DRAW2, LAST_X
@@ -102,20 +103,28 @@ class HockeyPlayer:
         v = 70 * (v / np.linalg.norm(v))
 
         new_puck_x = puck_x + v[0]
-        
+
         if player_info.kart.id == 0:
             print('adj: ', v[0])
             print('puck_x after: ', new_puck_x)
 
         steer = ((new_puck_x - 200) / 400) * 20
-        accel = 1
+        accel = 0.6
         brake = False
         drift = False
+
+        if puck_x >= 200:
+          self.is_right = True
+        else:
+          self.is_right = False
 
         if puck_y > 225 and puck_x > 150 and puck_x < 250:
             accel = 0
             brake = True
-            steer = -0.6
+            if self.is_right:
+              steer = 0.6
+            else:
+              steer = -0.6
 
         # if puck_present < 50:
         #     accel = 0
@@ -241,7 +250,7 @@ class GoaliePlayer:
             # brake = False
             # drift = False
             steer = ((puck_x - 200) / 400) * 20
-            accel = 0.25
+            accel = 0.6
             brake = False
             drift = False
             return {
@@ -267,7 +276,7 @@ class GoaliePlayer:
             dist_to_goal = np.linalg.norm(v)
             v = v / np.linalg.norm(v)
 
-            accel = 0.25
+            accel = 0.5
             brake = False
             drift = False
 
