@@ -1,0 +1,7 @@
+#!/bin/bash
+echo "Starting training"
+for i in {1..500}
+do
+    echo "starting iteration $i"
+    python3 -m tournament.play agent AI agent AI
+done

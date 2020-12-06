@@ -537,7 +537,7 @@ def test(agents, dest=None):
         
     tournament = Tournament(players)
     #score = tournament.play(save=dest, max_frames=200)
-    score = tournament.play(max_frames=10000)
+    score = tournament.play(max_frames=1000)
     print('Final score', score)
 
 if __name__ == '__main__':

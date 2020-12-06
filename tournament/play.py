@@ -2,9 +2,23 @@ from .utils import Player
 from .utils import Tournament
 from argparse import ArgumentParser
 import importlib
-import numpy as np
 
 import pystk
+
+
+class DummyPlayer:
+    def __init__(self, team=0):
+        self.team = team
+
+    @property
+    def config(self):
+        return pystk.PlayerConfig(
+            controller=pystk.PlayerConfig.Controller.AI_CONTROL,
+            team=self.team)
+    
+    def __call__(self, image, player_info):
+        return dict()
+
 
 if __name__ == '__main__':
     parser = ArgumentParser("Play some Ice Hockey. List any number of players, odd players are in team 1, even players team 2.")
