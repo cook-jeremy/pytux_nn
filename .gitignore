@@ -1,6 +1,7 @@
 data
 data2
+data3
 .vscode
 *.pyc
-model/__pycache__/*
-agent/__pycache__/*
+*/__pycache__
+tournament/__pycache__
